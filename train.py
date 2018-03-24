@@ -87,7 +87,7 @@ for epoch in range(10):
         loss.requires_grad=True
         loss.backward()
         optimizer.step()
-        sys.stdout.write('Epoch = {}\t Loss={}\t Loss_m={}\r'.format(epoch,loss.data[0],loss_m.data.mean()[0]))
+        sys.stdout.write('Epoch = {}\t Loss={}\t Loss_m={}\r'.format(epoch,loss.data[0],loss_m.data.mean()))
         sys.stdout.flush()
         avg_loss+=loss
         total_size+=x.shape[0]
