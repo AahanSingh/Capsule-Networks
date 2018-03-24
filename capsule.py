@@ -48,12 +48,14 @@ class Capsule_fc(nn.Module):
         self.num_out_caps = num_out_caps
         self.in_cap_dim = in_cap_dim
         self.out_cap_dim = out_cap_dim
-        self.W = nn.ModuleList([nn.Linear(self.in_cap_dim,self.out_cap_dim,bias=False) for i in range(self.num_in_caps*self.num_out_caps)])
+        self.W = nn.Linear(self.num_in_caps*self.in_cap_dim,self.num_in_caps*self.num_out_caps*self.out_cap_dim)
+        #self.W = nn.ModuleList([nn.Linear(self.in_cap_dim,self.out_cap_dim,bias=False) for i in range(self.num_in_caps*self.num_out_caps)])
         self.routing_iterations = r
         self.squash = Squash()
 
     def forward(self,x):
         # reshape x: B x NUM_IN_CAPS X IN_CAP_DIM -> B X (NUM_IN_CAPS X IN_CAP_DIM)
+        '''
         u_ji = []
         for i in range(self.num_in_caps):
             temp = []
@@ -68,7 +70,12 @@ class Capsule_fc(nn.Module):
             u_ji = Variable(torch.from_numpy(u_ji))
         u_ji = u_ji.permute(0, 2, 1, 3)
         u_ji = u_ji.permute(1, 0, 2, 3)
+
         x=u_ji
+        '''
+        x = x.view(-1,self.num_in_caps*self.in_cap_dim)
+        x = self.W(x)
+        x = x.view(-1,self.num_in_caps,self.num_out_caps,self.out_cap_dim)
         # shape of x is now B X (NUM_OUT_CAPS X OUT_CAP_DIM). Reshape to B X NUM_OUT_CAPS X OUT_CAP_DIM
         # x is now U j|i or the PREDICTION VECTORS
         if use_cuda:
@@ -77,14 +84,15 @@ class Capsule_fc(nn.Module):
             coupling_coef = Variable(torch.zeros((self.num_in_caps, self.num_out_caps)))
         b = coupling_coef
         s = None
-        for r in range(self.routing_iterations):                                                    # STEP 3
+        for r in range(self.routing_iterations+1):                                                    # STEP 3
             sys.stdout.write('r={}\r'.format(r))
             sys.stdout.flush()
             coupling_coef = F.softmax(b,dim=-1)                                                     # STEP 4
             s = coupling_coef.unsqueeze(dim=-1) * x                                                 # STEP 5
             s = s.sum(dim=-3)                                                                       # STEP 5
             s = self.squash(s)                                                                      # STEP 6
-            b = b + torch.matmul(x.unsqueeze(-2),s.unsqueeze(-1).unsqueeze(1)).squeeze().sum(dim=0) # STEPs 7
+            if r<self.routing_iterations:
+                b = b + torch.matmul(x.unsqueeze(-2),s.unsqueeze(-1).unsqueeze(1)).squeeze().sum(dim=0) # STEPs 7
         return s
 
 class MarginLoss(nn.Module):
@@ -115,9 +123,10 @@ class MarginLoss(nn.Module):
         loss_vec = torch.mul(term1,one_hot) + torch.mul(term2,one_hot_inv)
         # loss_vec contains capsule wise loss
         total_loss = loss_vec.sum(dim=-1)
-        total_loss = total_loss.mean()
-        total_loss.requires_grad=True
         return total_loss
+        #total_loss = total_loss.mean()
+        #total_loss.requires_grad=True
+        #return total_loss
 
 
 class ReconLoss(nn.Module):
@@ -129,9 +138,10 @@ class ReconLoss(nn.Module):
         original = original.view(-1,28*28)
         loss_vec = (original.data-recon.data).norm(p=2,dim=-1)
         loss_vec = Variable(loss_vec)
-        loss = loss_vec.mean()
-        loss.required_grad=True
-        return loss
+        return loss_vec
+        #loss = loss_vec.mean()
+        #loss.required_grad=True
+        #return loss
 
 class Capsule_Net(nn.Module):
     def __init__(self):

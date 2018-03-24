@@ -45,7 +45,7 @@ trans = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), 
 train_set = dset.MNIST(root=root, train=True, transform=trans, download=download)
 test_set = dset.MNIST(root=root, train=False, transform=trans)
 
-batch_size = 128
+batch_size = 1
 
 train_loader = torch.utils.data.DataLoader(
                  dataset=train_set,
@@ -80,10 +80,11 @@ for epoch in range(10):
         loss_r = loss_recon(x,recon)
         loss = loss_m.data+ 0.0005*loss_r.data
         loss = Variable(loss)
+        loss = loss.mean()
         loss.requires_grad=True
         loss.backward()
         optimizer.step()
-        sys.stdout.write('\n==>>> epoch: {}, batch index: {}, train loss: {}\trecon={}\tmargin={}\n'.format(epoch, batch_idx + 1, loss.data[0],loss_r.data[0],loss_m.data[0]))
+        sys.stdout.write('\n==>>> epoch: {}, batch index: {}, train loss: {}\n'.format(epoch, batch_idx + 1, loss.data))
         sys.stdout.flush()
     # testing
     correct_cnt, ave_loss = 0, 0
