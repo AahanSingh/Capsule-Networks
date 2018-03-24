@@ -105,7 +105,7 @@ for epoch in range(10):
         if use_cuda:
             pred_label=pred_label.cuda()
         total_cnt += x.data.size()[0]
-        correct_cnt += (pred_label == target.data).sum()
+        correct_cnt += (pred_label == target.data.cuda()).sum()
     test_acc = correct_cnt/total_cnt
     print('\nTest Accuracy={}'.format(correct_cnt * 1.0 / total_cnt))
     if test_acc>best_acc:
