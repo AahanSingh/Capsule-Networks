@@ -57,14 +57,14 @@ test_loader = torch.utils.data.DataLoader(
                 shuffle=False)
 
 print('==>>> total training batch number: {}'.format(len(train_loader)))
-print('==>>> total testing batch number: {}'.format(len(test_loader)))
+print('==>>> total testing batch number: {}\n'.format(len(test_loader)))
 
 model = Capsule_Net()
 #print(model)
 if use_cuda:
     model = model.cuda()
 
-optimizer = optim.Adam(model.parameters())
+optimizer = optim.Adam(model.parameters(),lr=0.01)
 loss_margin = MarginLoss()
 loss_recon = ReconLoss()
 best_acc = 0.0
@@ -87,7 +87,7 @@ for epoch in range(10):
         loss.requires_grad=True
         loss.backward()
         optimizer.step()
-        sys.stdout.write('Epoch = {}\t Loss={}\r'.format(epoch,loss.data[0]))
+        sys.stdout.write('Epoch = {}\t Loss={}\t Loss_m={}\r'.format(epoch,loss.data[0],loss_m.data.mean()[0]))
         sys.stdout.flush()
         avg_loss+=loss
         total_size+=x.shape[0]
