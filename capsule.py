@@ -170,7 +170,8 @@ class Capsule_Net(nn.Module):
 
         if label is None:
             logits = x.norm(dim=-1)
-            _, label = Variable(torch.max(logits.data, dim=1))
+            _, label = torch.max(logits.data, dim=1)
+            label = Variable(label)
             if use_cuda:
                 label=label.cuda()
 
