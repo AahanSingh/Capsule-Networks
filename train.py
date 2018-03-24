@@ -85,7 +85,7 @@ for epoch in range(10):
         loss.requires_grad=True
         loss.backward()
         optimizer.step()
-        sys.stdout.write('Epoch = {}\t Loss={}\r'.format(epoch,loss.data))
+        sys.stdout.write('Epoch = {}\t Loss={}\r'.format(epoch,loss.data[0]))
         sys.stdout.flush()
     # testing
     correct_cnt=0
