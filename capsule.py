@@ -14,9 +14,6 @@ class Squash(nn.Module):
         unit_v = x/l2norm
         squashed_v = l2norm.pow(2)/(1+l2norm.pow(2))
         x = unit_v*squashed_v
-        #print('Norms=',l2norm)
-        #print('Unit_v=',unit_v)
-        #print('squashed=',squashed_v)
         return x
 
 class Capsule_conv(nn.Module):
@@ -40,40 +37,27 @@ class Capsule_conv(nn.Module):
         x = x.permute(0,1,3,2,4)
         x = x.permute(0,1,2,4,3)
         x = x.contiguous()
-        #print(x.is_contiguous())
         x = x.view(-1,self.out_channels*o*o,self.cap_dim)
-        #print(x)
         x = self.squash(x)
         return x
 
 class Capsule_fc(nn.Module):
-    def __init__(self,in_cap_dim,num_in_caps,out_cap_dim,num_out_caps,r = 1):
+    def __init__(self,in_cap_dim,num_in_caps,out_cap_dim,num_out_caps,r = 3):
         super(Capsule_fc, self).__init__()
         self.num_in_caps = num_in_caps
-        #print('created ninc')
         self.num_out_caps = num_out_caps
         self.in_cap_dim = in_cap_dim
         self.out_cap_dim = out_cap_dim
-        #print('created ocdim')
-        #self.W = nn.Linear((num_in_caps*in_cap_dim),(num_in_caps*num_out_caps*out_cap_dim),bias=False)
         self.W = nn.ModuleList([nn.Linear(self.in_cap_dim,self.out_cap_dim,bias=False) for i in range(self.num_in_caps*self.num_out_caps)])
-        #print('created W')
         self.routing_iterations = r
-        #self.coupling_coef = Variable(torch.zeros((self.num_in_caps, self.num_out_caps)))
-        #if use_cuda:
-        #    self.coupling_coef = Variable(torch.zeros((self.num_in_caps, self.num_out_caps)).cuda())
         self.squash = Squash()
 
     def forward(self,x):
         # reshape x: B x NUM_IN_CAPS X IN_CAP_DIM -> B X (NUM_IN_CAPS X IN_CAP_DIM)
-        #x = x.view(-1,self.num_in_caps*self.in_cap_dim)
-        #x = self.W(x)
-        #print('here dummy   ',x.data.__class__)
         u_ji = []
         for i in range(self.num_in_caps):
             temp = []
             for j in range(self.num_out_caps):
-                #print(x[:,i,:].data.__class__)
                 res = self.W[i*self.num_out_caps+j](x[:,i,:])
                 temp.append(res.data.cpu().numpy())
             u_ji.append(temp)
@@ -84,10 +68,8 @@ class Capsule_fc(nn.Module):
             u_ji = Variable(torch.from_numpy(u_ji))
         u_ji = u_ji.permute(0, 2, 1, 3)
         u_ji = u_ji.permute(1, 0, 2, 3)
-        #print('UJI=',u_ji.shape)
         x=u_ji
         # shape of x is now B X (NUM_OUT_CAPS X OUT_CAP_DIM). Reshape to B X NUM_OUT_CAPS X OUT_CAP_DIM
-        #x = x.view(-1,self.num_in_caps,self.num_out_caps,self.out_cap_dim)
         # x is now U j|i or the PREDICTION VECTORS
         if use_cuda:
             coupling_coef = Variable(torch.zeros((self.num_in_caps, self.num_out_caps)).cuda())
@@ -95,20 +77,14 @@ class Capsule_fc(nn.Module):
             coupling_coef = Variable(torch.zeros((self.num_in_caps, self.num_out_caps)))
         b = coupling_coef
         s = None
-        for r in range(self.routing_iterations):            # STEP 3
+        for r in range(self.routing_iterations):                                                    # STEP 3
             sys.stdout.write('\nr={}\r'.format(r))
             sys.stdout.flush()
-            coupling_coef = F.softmax(b,dim=-1)        # STEP 4
-            s = coupling_coef.unsqueeze(dim=-1) * x    # STEP 5
-            s = s.sum(dim=-3)                               # STEP 5
-            s = self.squash(s)                              # STEP 6
-            '''
-            for bat in range(s.shape[0]):                   # STEP 7
-                for i in range(self.num_in_caps):
-                    for j in range(self.num_out_caps):
-                        b[i,j] = b[i,j] + (x[bat,i,j].dot(s[bat,j]))
-            '''
-            b = b + torch.matmul(x.unsqueeze(-2),s.unsqueeze(-1).unsqueeze(1)).squeeze().sum(dim=0)
+            coupling_coef = F.softmax(b,dim=-1)                                                     # STEP 4
+            s = coupling_coef.unsqueeze(dim=-1) * x                                                 # STEP 5
+            s = s.sum(dim=-3)                                                                       # STEP 5
+            s = self.squash(s)                                                                      # STEP 6
+            b = b + torch.matmul(x.unsqueeze(-2),s.unsqueeze(-1).unsqueeze(1)).squeeze().sum(dim=0) # STEPs 7
         return s
 
 class MarginLoss(nn.Module):
@@ -126,22 +102,17 @@ class MarginLoss(nn.Module):
         else:
             loss_vec = Variable(torch.zeros(output.shape[0], output.shape[1]))
             one_hot = Variable(torch.zeros_like(loss_vec.data))
-        for i,lab in enumerate(target.data2):
+        for i,lab in enumerate(target.data):
             one_hot[i,lab] = 1
         one_hot_inv = (one_hot-1) * -1
 
         l2norm = output.norm(dim=-1, keepdim=True)  # Bx10
         term1 = F.relu(self.m_plus-l2norm)**2  # Bx10
+        term1 = term1.squeeze()
         term2 = self.downweighting * F.relu(l2norm-self.m_minus)**2  # Bx10
+        term2 = term2.squeeze()
+
         loss_vec = torch.mul(term1,one_hot) + torch.mul(term2,one_hot_inv)
-        '''
-        for bat in range(target.shape[0]):
-            for i in range(output.shape[1]):
-                if i == target.data[bat]:
-                    loss_vec[bat,i] = term1[bat,i]
-                else:
-                    loss_vec[bat,i] = term2[bat,i]
-        '''
         # loss_vec contains capsule wise loss
         total_loss = loss_vec.sum()
         total_loss.requires_grad=True
@@ -165,11 +136,8 @@ class Capsule_Net(nn.Module):
     def __init__(self):
         super(Capsule_Net, self).__init__()
         self.conv1 = nn.Conv2d(1,256,9)
-        #print('created conv1')
         self.primary_caps = Capsule_conv(256,32,8)
-        #print('created pc')
         self.digcaps = Capsule_fc(8,32*6*6,16,10)
-        #print('created dc')
         self.decoder = nn.Sequential(
             nn.Linear(10*16,512),
             nn.ReLU(),
@@ -182,11 +150,8 @@ class Capsule_Net(nn.Module):
     def forward(self,x,label=None):
         original = x
         x = self.conv1(x)
-        #print('AFTER conv1 ',x.shape)
         x = self.primary_caps(x)
-        #print('AFTER Primary CAPS=',x.shape)
         x = self.digcaps(x)
-        #print('AFTER DIGCAPS=',x.shape)
         if use_cuda:
             one_hot = Variable(torch.zeros(x.shape[0], x.shape[1]).cuda())  # B x 10
         else:
