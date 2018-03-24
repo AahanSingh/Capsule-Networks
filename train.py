@@ -45,7 +45,7 @@ trans = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), 
 train_set = dset.MNIST(root=root, train=True, transform=trans, download=download)
 test_set = dset.MNIST(root=root, train=False, transform=trans)
 
-batch_size = 1
+batch_size = 256
 
 train_loader = torch.utils.data.DataLoader(
                  dataset=train_set,
