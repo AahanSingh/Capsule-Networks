@@ -102,6 +102,8 @@ for epoch in range(10):
         out,recon = model(x)
         logits = out.norm(dim=-1)
         _, pred_label = torch.max(logits.data, dim=1) # cool trick
+        if use_cuda:
+            pred_label=pred_label.cuda()
         total_cnt += x.data.size()[0]
         correct_cnt += (pred_label == target.data).sum()
     test_acc = correct_cnt/total_cnt
