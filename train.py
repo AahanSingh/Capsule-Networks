@@ -60,7 +60,7 @@ print('==>>> total training batch number: {}'.format(len(train_loader)))
 print('==>>> total testing batch number: {}'.format(len(test_loader)))
 
 model = Capsule_Net()
-print(model)
+#print(model)
 if use_cuda:
     model = model.cuda()
 
@@ -78,14 +78,12 @@ for epoch in range(10):
         out,recon = model(x, target)
         loss_m = loss_margin(out, target)
         loss_r = loss_recon(x,recon)
-        #print(loss_m)
-        #print(loss_r)
         loss = loss_m.data+ 0.0005*loss_r.data
         loss = Variable(loss)
         loss.requires_grad=True
         loss.backward()
         optimizer.step()
-        sys.stdout.write('==>>> epoch: {}, batch index: {}, train loss: {}\r'.format(epoch, batch_idx + 1, loss.data[0]))
+        sys.stdout.write('\n==>>> epoch: {}, batch index: {}, train loss: {}\trecon={}\tmargin={}\n'.format(epoch, batch_idx + 1, loss.data[0],loss_r.data[0],loss_m.data[0]))
         sys.stdout.flush()
     # testing
     correct_cnt, ave_loss = 0, 0

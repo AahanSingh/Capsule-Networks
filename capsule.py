@@ -78,7 +78,7 @@ class Capsule_fc(nn.Module):
         b = coupling_coef
         s = None
         for r in range(self.routing_iterations):                                                    # STEP 3
-            sys.stdout.write('\nr={}\r'.format(r))
+            sys.stdout.write('r={}\r'.format(r))
             sys.stdout.flush()
             coupling_coef = F.softmax(b,dim=-1)                                                     # STEP 4
             s = coupling_coef.unsqueeze(dim=-1) * x                                                 # STEP 5
@@ -114,7 +114,8 @@ class MarginLoss(nn.Module):
 
         loss_vec = torch.mul(term1,one_hot) + torch.mul(term2,one_hot_inv)
         # loss_vec contains capsule wise loss
-        total_loss = loss_vec.sum()
+        total_loss = loss_vec.sum(dim=-1)
+        total_loss = total_loss.mean()
         total_loss.requires_grad=True
         return total_loss
 
@@ -128,7 +129,7 @@ class ReconLoss(nn.Module):
         original = original.view(-1,28*28)
         loss_vec = (original.data-recon.data).norm(p=2,dim=-1)
         loss_vec = Variable(loss_vec)
-        loss = loss_vec.sum()
+        loss = loss_vec.mean()
         loss.required_grad=True
         return loss
 
