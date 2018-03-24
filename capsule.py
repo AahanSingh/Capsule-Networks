@@ -85,8 +85,8 @@ class Capsule_fc(nn.Module):
         b = coupling_coef
         s = None
         for r in range(self.routing_iterations+1):                                                    # STEP 3
-            sys.stdout.write('r={}\r'.format(r))
-            sys.stdout.flush()
+            #sys.stdout.write('r={}\r'.format(r))
+            #sys.stdout.flush()
             coupling_coef = F.softmax(b,dim=-1)                                                     # STEP 4
             s = coupling_coef.unsqueeze(dim=-1) * x                                                 # STEP 5
             s = s.sum(dim=-3)                                                                       # STEP 5

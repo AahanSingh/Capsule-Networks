@@ -67,6 +67,7 @@ if use_cuda:
 optimizer = optim.Adam(model.parameters())
 loss_margin = MarginLoss()
 loss_recon = ReconLoss()
+best_acc = 0.0
 for epoch in range(10):
     # training
     ave_loss = 0
@@ -84,27 +85,22 @@ for epoch in range(10):
         loss.requires_grad=True
         loss.backward()
         optimizer.step()
-        sys.stdout.write('\n==>>> epoch: {}, batch index: {}, train loss: {}\n'.format(epoch, batch_idx + 1, loss.data))
+        sys.stdout.write('Epoch = {}\t Loss={}\r'.format(epoch,loss.data))
         sys.stdout.flush()
     # testing
-    correct_cnt, ave_loss = 0, 0
+    correct_cnt=0
     total_cnt = 0
     for batch_idx, (x, target) in enumerate(test_loader):
         if use_cuda:
             x, targe = x.cuda(), target.cuda()
         x, target = Variable(x, volatile=True), Variable(target, volatile=True)
-        out = model(x,train=False)
-        loss_m = loss_margin(out)
+        out,recon = model(x)
         logits = out.norm(dim=-1)
         _, pred_label = torch.max(logits.data, dim=1) # cool trick
         total_cnt += x.data.size()[0]
         correct_cnt += (pred_label == target.data).sum()
-        # smooth average
-        ave_loss = ave_loss * 0.9 + loss.data[0] * 0.1
-
-        if (batch_idx + 1) % 100 == 0 or (batch_idx + 1) == len(test_loader):
-            print
-            '==>>> epoch: {}, batch index: {}, test loss: {:.6f}, acc: {}'.format(
-                epoch, batch_idx + 1, ave_loss, correct_cnt * 1.0 / total_cnt)
-
-torch.save(model.state_dict(), model.name())
+    test_acc = correct_cnt/total_cnt
+    print('\nTest Accuracy={}'.format(correct_cnt * 1.0 / total_cnt))
+    if test_acc>best_acc:
+        best_acc=test_acc
+        save_model(model,'model_acc_{}.pkl'.format(best_acc))
