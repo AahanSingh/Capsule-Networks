@@ -91,7 +91,7 @@ for epoch in range(10):
         sys.stdout.flush()
         avg_loss+=loss
         total_size+=x.shape[0]
-    sys.stdout.write('\nAvg Loss={}'.format(avg_loss/total_size))
+    sys.stdout.write('\nAvg Loss={}'.format(avg_loss.data[0]/total_size*batch_size))
     # testing
     correct_cnt=0
     total_cnt = 0
