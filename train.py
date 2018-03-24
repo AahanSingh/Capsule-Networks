@@ -68,7 +68,9 @@ optimizer = optim.Adam(model.parameters())
 loss_margin = MarginLoss()
 loss_recon = ReconLoss()
 best_acc = 0.0
+avg_loss = 0.0
 for epoch in range(10):
+    total_size = 0
     # training
     ave_loss = 0
     for batch_idx, (x, target) in enumerate(train_loader):
@@ -87,6 +89,9 @@ for epoch in range(10):
         optimizer.step()
         sys.stdout.write('Epoch = {}\t Loss={}\r'.format(epoch,loss.data[0]))
         sys.stdout.flush()
+        avg_loss+=loss
+        total_size+=x.shape[0]
+    sys.stdout.write('\nAvg Loss={}'.format(avg_loss/total_size))
     # testing
     correct_cnt=0
     total_cnt = 0
