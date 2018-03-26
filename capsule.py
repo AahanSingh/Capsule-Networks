@@ -48,8 +48,8 @@ class Capsule_fc(nn.Module):
         self.num_out_caps = num_out_caps
         self.in_cap_dim = in_cap_dim
         self.out_cap_dim = out_cap_dim
-        #self.W = nn.Linear(self.num_in_caps*self.in_cap_dim,self.num_in_caps*self.num_out_caps*self.out_cap_dim)
-        self.W = nn.ModuleList([nn.Linear(self.in_cap_dim,self.out_cap_dim,bias=False) for i in range(self.num_in_caps*self.num_out_caps)])
+        self.W = nn.Linear(self.num_in_caps*self.in_cap_dim,self.num_in_caps*self.num_out_caps*self.out_cap_dim)
+        #self.W = nn.ModuleList([nn.Linear(self.in_cap_dim,self.out_cap_dim,bias=False) for i in range(self.num_in_caps*self.num_out_caps)])
         self.routing_iterations = r
         self.squash = Squash()
 
