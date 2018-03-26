@@ -102,3 +102,4 @@ for epoch in range(10):
     if test_acc>best_acc:
         best_acc=test_acc
         save_model(model,'model_acc_{}.pkl'.format(best_acc))
+
