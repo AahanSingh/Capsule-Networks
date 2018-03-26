@@ -103,7 +103,6 @@ class MarginLoss(nn.Module):
         term2 = self.downweighting * F.relu(l2norm-self.m_minus)**2
         term2 = term2.squeeze()
         loss_vec = torch.mul(term1,one_hot) + torch.mul(term2,1-one_hot)
-        print('Margin=', loss_vec)
         total_loss = loss_vec.sum(dim=-1)
         return total_loss.mean()
 
@@ -116,7 +115,6 @@ class ReconLoss(nn.Module):
         original = original.view(-1,28*28)
         loss_vec = (original.data-recon.data).norm(p=2,dim=-1)**2
         loss_vec = Variable(loss_vec)
-        print('Recon=',loss_vec)
         return loss_vec.mean()
 
 class CapsuleLoss(nn.Module):
@@ -155,9 +153,6 @@ class Capsule_Net(nn.Module):
         x = self.conv1(x)
         x = self.primary_caps(x)
         x = self.digcaps(x)
-        print('Output = ',x.norm(dim=-1))
-        class_probs = F.softmax(torch.sqrt((x ** 2).sum(dim=-1)), dim=-1)
-        print('Probs = ',class_probs)
         if label is None:
             logits = x.norm(dim=-1)
             _, label = torch.max(logits.data, dim=1)

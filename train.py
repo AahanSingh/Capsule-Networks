@@ -66,7 +66,6 @@ for epoch in range(10):
         out,recon = model(x, target)
         # COMPUTE LOSS
         loss = loss_fn(out,target,x,recon)
-        print('Back in train: Loss = ',loss)
         # FIND GRADIENTS
         loss.backward()
         # UPDATE WEIGHTS
