@@ -55,13 +55,20 @@ for epoch in range(10):
     train_acc=0.0
     start_time = time.time()
     for batch_no, (x, target) in enumerate(train_loader):
-        optimizer.zero_grad()
+
         if use_cuda:
             x, target = x.cuda(), target.cuda()
         x, target = Variable(x), Variable(target)
+
+        # CLEAR GRADIENT TO PREVENT ACCUMULATION
+        optimizer.zero_grad()
+        # COMPUTE OUTPUT
         out,recon = model(x, target)
+        # COMPUTE LOSS
         loss = loss_fn(out,target,x,recon)
+        # FIND GRADIENTS
         loss.backward()
+        # UPDATE WEIGHTS
         optimizer.step()
 
         # OBTAIN ACCURACY ON BATCH

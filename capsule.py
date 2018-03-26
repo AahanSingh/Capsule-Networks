@@ -104,7 +104,7 @@ class MarginLoss(nn.Module):
         term2 = term2.squeeze()
         loss_vec = torch.mul(term1,one_hot) + torch.mul(term2,1-one_hot)
 
-        total_loss = loss_vec.mean()
+        total_loss = loss_vec.sum(dim=-1)
         return total_loss
 
 class ReconLoss(nn.Module):
@@ -116,7 +116,7 @@ class ReconLoss(nn.Module):
         original = original.view(-1,28*28)
         loss_vec = (original.data-recon.data).norm(p=2,dim=-1)**2
         loss_vec = Variable(loss_vec)
-        return loss_vec.mean()
+        return loss_vec
 
 class CapsuleLoss(nn.Module):
     def __init__(self):
@@ -130,6 +130,7 @@ class CapsuleLoss(nn.Module):
         loss = loss_m.data+ 0.0005*loss_r.data
         loss = Variable(loss)
         loss.requires_grad = True
+        loss = loss.mean()
         return loss
 
 class Capsule_Net(nn.Module):
