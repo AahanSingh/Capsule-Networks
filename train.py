@@ -85,10 +85,12 @@ for epoch in range(10):
         loss.requires_grad=True
         loss.backward()
         optimizer.step()
+        train_acc = (torch.max(out.norm(dim=-1), dim=-1) == target.data).sum()
         if batch_idx%100==0:
-            sys.stdout.write('Epoch = {}\t Loss={}\t Loss_m={}\tLoss_r={}\n'.format(epoch,loss.data[0],loss_m.data[0],loss_r.data[0]))
+            sys.stdout.write('Epoch = {}\t Batch n.o.={}\t Loss={}\t Loss_m={}\tLoss_r={}\t Train_acc={}\n'.format(epoch,batch_idx,loss.data[0],loss_m.data[0],loss_r.data[0],train_acc))
         sys.stdout.flush()
         avg_loss+=loss
+
     sys.stdout.write('\nAvg Loss={}'.format(avg_loss.data[0]/len(train_loader)))
     # testing
     correct_cnt=0
