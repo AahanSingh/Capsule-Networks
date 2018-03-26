@@ -61,6 +61,7 @@ print('==>>> total testing batch number: {}\n'.format(len(test_loader)))
 
 model = Capsule_Net()
 print(model)
+print ("# parameters: ", sum(param.numel() for param in model.parameters()))
 if use_cuda:
     model = model.cuda()
 

@@ -31,13 +31,13 @@ class Capsule_conv(nn.Module):
     def forward(self,x):
         x = self.conv(x)
         # reshaping the tensor
-        o = x.shape[-1]
-        x = x.view(-1,self.out_channels,self.cap_dim,o,o)
+        #o = x.shape[-1]
+        #x = x.view(-1,self.out_channels,self.cap_dim,o,o)
         # move axis of cap_dim to -1
-        x = x.permute(0,1,3,2,4)
-        x = x.permute(0,1,2,4,3)
-        x = x.contiguous()
-        x = x.view(-1,self.out_channels*o*o,self.cap_dim)
+        #x = x.permute(0,1,3,2,4)
+        #x = x.permute(0,1,2,4,3)
+        #x = x.contiguous()
+        x = x.view(x.shape[0],-1,self.cap_dim)
         x = self.squash(x)
         return x
 
@@ -48,8 +48,8 @@ class Capsule_fc(nn.Module):
         self.num_out_caps = num_out_caps
         self.in_cap_dim = in_cap_dim
         self.out_cap_dim = out_cap_dim
-        self.W = nn.Linear(self.num_in_caps*self.in_cap_dim,self.num_in_caps*self.num_out_caps*self.out_cap_dim)
-        #self.W = nn.ModuleList([nn.Linear(self.in_cap_dim,self.out_cap_dim,bias=False) for i in range(self.num_in_caps*self.num_out_caps)])
+        #self.W = nn.Linear(self.num_in_caps*self.in_cap_dim,self.num_in_caps*self.num_out_caps*self.out_cap_dim)
+        self.W = nn.ModuleList([nn.Linear(self.in_cap_dim,self.out_cap_dim,bias=False) for i in range(self.num_in_caps*self.num_out_caps)])
         self.routing_iterations = r
         self.squash = Squash()
 
