@@ -5,6 +5,7 @@ import sys, time
 from capsule import Capsule_Net, CapsuleLoss
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 
 def save_model(model,path):
     torch.save(model.state_dict(),path)
@@ -14,6 +15,38 @@ def load_model(model,path):
     print('######## MODEL LOADED ########')
     return model
 
+def printgradnorm(self, grad_input, grad_output):
+    print('\nInside ' + self.__class__.__name__ + ' backward')
+    print('Inside class:' + self.__class__.__name__)
+    print('')
+    print('grad_input: ', type(grad_input))
+    print('grad_input[0]: ', type(grad_input[0]))
+    print('grad_input[1]: ', type(grad_input[1]))
+    print('grad_input[2]: ', type(grad_input[2]))
+    #print('grad_input[0].data: ', type(grad_input[0].data))
+    print('grad_input[1]: ', type(grad_input[1]))
+    print('grad_input[1].data: ', type(grad_input[1].data))
+
+    print('grad_output: ', type(grad_output))
+    print('grad_output[0]: ', type(grad_output[0]))
+    print('grad_output[0].data: ', type(grad_output[0].data))
+    print('')
+    print('grad_input size:', grad_input[1].size())
+    print('grad_input size:', grad_input[2].size())
+    print('grad_output size:', grad_output[0].size())
+    print('grad_input norm:', grad_input[0].data.norm())
+
+def print_blobs(self, input, output):
+    # input is a tuple of packed inputs
+    # output is a Variable. output.data is the Tensor we are interested
+    print('\nInside ' + self.__class__.__name__ + ' forward')
+    print('')
+    print('input: ', type(input))
+    print('input[0]: ', type(input[0]))
+    print('output: ', type(output))
+    print('')
+    print('input size:', input[0].size())
+    print('output size:', output.data.size())
 ########################################################################################
 ###################### LOADER CODE BELOW TAKEN FROM TUTORIAL############################
 ########################################################################################
@@ -42,12 +75,14 @@ print('==>>> total testing batch number: {}\n'.format(len(test_loader)))
 
 model = Capsule_Net()
 print(model)
+#model.conv1.register_backward_hook(printgradnorm)
+#model.digcaps.register_forward_hook(print_blobs)
 print ("# parameters: ", sum(param.numel() for param in model.parameters()))
+
 if use_cuda:
     model = model.cuda()
 
 optimizer = optim.Adam(model.parameters())
-loss_fn = CapsuleLoss()
 best_acc = 0.0
 for epoch in range(10):
     # training
@@ -63,22 +98,21 @@ for epoch in range(10):
         # CLEAR GRADIENT TO PREVENT ACCUMULATION
         optimizer.zero_grad()
         # COMPUTE OUTPUT
-        out,recon = model(x, target)
+        out,recon,mask = model(x, target)
         # COMPUTE LOSS
-        loss = loss_fn(out,target,x,recon)
+        loss = CapsuleLoss(out,mask,x,recon)
         # FIND GRADIENTS
         loss.backward()
         # UPDATE WEIGHTS
         optimizer.step()
-
         # OBTAIN ACCURACY ON BATCH
-        logits = out.norm(dim=-1)
+        logits = F.softmax(out.norm(dim=-1),dim=-1)
         _, pred_label = torch.max(logits.data, dim=1)
         if use_cuda:
             pred_label = pred_label.cuda()
         train_acc = (pred_label == target.data).double().mean()
         #if batch_no%batch_size==0:
-        sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\n'.format(epoch,batch_no,loss.data[0],train_acc))
+        sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\r'.format(epoch,batch_no,loss.data[0],train_acc))
         sys.stdout.flush()
         avg_loss+=loss
     total_time = time.time()-start_time
@@ -90,7 +124,7 @@ for epoch in range(10):
         if use_cuda:
             x, targe = x.cuda(), target.cuda()
         x, target = Variable(x, volatile=True), Variable(target, volatile=True)
-        out,recon = model(x)
+        out,recon,_ = model(x)
         logits = out.norm(dim=-1)
         _, pred_label = torch.max(logits.data, dim=1) # cool trick
         if use_cuda:
