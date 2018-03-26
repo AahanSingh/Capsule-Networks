@@ -161,7 +161,6 @@ class Capsule_Net(nn.Module):
                 label=label.cuda()
 
         one_hot = self.mask.index_select(dim=0,index = label)
-        print(one_hot)
         recon = one_hot.unsqueeze(-1) * x # B x 10 x 16
         recon = recon.view(-1,x.shape[1]*x.shape[2])
         recon = self.decoder(recon) # B x 784
