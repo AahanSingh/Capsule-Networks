@@ -1,7 +1,7 @@
 from torch.autograd import Variable
 import torch
 import torch.optim as optim
-import sys
+import sys, time
 from capsule import Capsule_Net, CapsuleLoss
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
@@ -53,8 +53,8 @@ for epoch in range(10):
     # training
     avg_loss = 0.0
     train_acc=0.0
+    start_time = time.time()
     for batch_no, (x, target) in enumerate(train_loader):
-
         optimizer.zero_grad()
         if use_cuda:
             x, target = x.cuda(), target.cuda()
@@ -71,11 +71,12 @@ for epoch in range(10):
             pred_label = pred_label.cuda()
         correct_cnt = (pred_label == target.data.cuda()).sum()
         train_acc = correct_cnt/batch_size
-        sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\r'.format(epoch,batch_no,loss.data[0],train_acc))
-        sys.stdout.flush()
+        if batch_no%1000==0:
+            sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\n'.format(epoch,batch_no,loss.data[0],train_acc))
+            sys.stdout.flush()
         avg_loss+=loss
-
-    sys.stdout.write('\nAvg Loss={0:.4f}'.format(avg_loss.data[0]/len(train_loader)))
+    total_time = time.time()-start_time
+    sys.stdout.write('\nAvg Loss={0:.4f}\t time taken = {1:0.2f}'.format(avg_loss.data[0]/len(train_loader),total_time))
     # testing
     correct_cnt=0
     total_cnt = 0
