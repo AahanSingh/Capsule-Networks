@@ -5,7 +5,6 @@ from torch.autograd import Variable
 
 use_cuda = torch.cuda.is_available()
 
-
 class Squash(nn.Module):
     def __init__(self):
         super(Squash,self).__init__()
