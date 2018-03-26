@@ -69,8 +69,7 @@ for epoch in range(10):
         _, pred_label = torch.max(logits.data, dim=1)
         if use_cuda:
             pred_label = pred_label.cuda()
-        correct_cnt = (pred_label == target.data.cuda()).sum()
-        train_acc = correct_cnt/batch_size
+        train_acc = (pred_label == target.data.cuda()).mean()
         if batch_no%1000==0:
             sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\n'.format(epoch,batch_no,loss.data[0],train_acc))
             sys.stdout.flush()
