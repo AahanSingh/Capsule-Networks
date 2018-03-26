@@ -86,7 +86,13 @@ for epoch in range(10):
         loss.requires_grad=True
         loss.backward()
         optimizer.step()
-        train_acc += (torch.Tensor(torch.max(out.norm(dim=-1), dim=-1)).cuda() == target.data).sum()
+        logits = out.norm(dim=-1)
+        _, pred_label = torch.max(logits.data, dim=1)  # cool trick
+        if use_cuda:
+            pred_label = pred_label.cuda()
+        total_cnt += x.data.size()[0]
+        correct_cnt += (pred_label == target.data.cuda()).sum()
+        train_acc = correct_cnt / total_cnt
         if batch_idx%100==0:
             sys.stdout.write('Epoch = {}\t Batch n.o.={}\t Loss={}\t Loss_m={}\tLoss_r={}\t Train_acc={}\n'
                              .format(epoch,batch_idx,loss.data[0],loss_m.data[0],loss_r.data[0],train_acc))
