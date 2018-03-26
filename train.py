@@ -26,7 +26,7 @@ trans = transforms.Compose([transforms.ToTensor()])#, transforms.Normalize((0.5,
 train_set = dset.MNIST(root=root, train=True, transform=trans, download=download)
 test_set = dset.MNIST(root=root, train=False, transform=trans)
 
-batch_size = 100
+batch_size = 5
 
 train_loader = torch.utils.data.DataLoader(
                  dataset=train_set,
@@ -66,6 +66,7 @@ for epoch in range(10):
         out,recon = model(x, target)
         # COMPUTE LOSS
         loss = loss_fn(out,target,x,recon)
+        print('Back in train: Loss = ',loss)
         # FIND GRADIENTS
         loss.backward()
         # UPDATE WEIGHTS
@@ -76,10 +77,10 @@ for epoch in range(10):
         _, pred_label = torch.max(logits.data, dim=1)
         if use_cuda:
             pred_label = pred_label.cuda()
-        train_acc = (pred_label == target.data.cuda()).double().mean()
-        if batch_no%1000==0:
-            sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\n'.format(epoch,batch_no,loss.data[0],train_acc))
-            sys.stdout.flush()
+        train_acc = (pred_label == target.data).double().mean()
+        #if batch_no%batch_size==0:
+        sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\n'.format(epoch,batch_no,loss.data[0],train_acc))
+        sys.stdout.flush()
         avg_loss+=loss
     total_time = time.time()-start_time
     sys.stdout.write('\nAvg Loss={0:.4f}\t time taken = {1:0.2f}'.format(avg_loss.data[0]/len(train_loader),total_time))

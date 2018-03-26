@@ -65,19 +65,19 @@ class Capsule_fc(nn.Module):
         x = torch.matmul(self.W,x.unsqueeze(-1).unsqueeze(-3)).squeeze()
         # shape of x is now B X (NUM_OUT_CAPS X OUT_CAP_DIM). Reshape to B X NUM_OUT_CAPS X OUT_CAP_DIM
         # x is now U j|i or the PREDICTION VECTORS
-        coupling_coef = Variable(torch.zeros((self.num_in_caps, self.num_out_caps)))
+        coupling_coef = Variable(torch.zeros([*x.shape]))
         if use_cuda:
             coupling_coef = coupling_coef.cuda()
         b = coupling_coef
         s = None
-        for r in range(self.routing_iterations+1):                                                      # STEP 3
-            coupling_coef = F.softmax(b,dim=-1)                                                         # STEP 4
-            s = coupling_coef.unsqueeze(dim=-1) * x                                                     # STEP 5
-            s = s.sum(dim=-3)                                                                           # STEP 5
+        for r in range(1,self.routing_iterations+1):                                                    # STEP 3
+            coupling_coef = F.softmax(b,dim=-3)                                                         # STEP 4
+            s = coupling_coef * x                                                                       # STEP 5
+            s = s.sum(dim=-3,keepdim=True)                                                              # STEP 5
             s = self.squash(s)                                                                          # STEP 6
-            if r<self.routing_iterations:
-                b = b + torch.matmul(x.unsqueeze(-2),s.unsqueeze(-1).unsqueeze(1)).squeeze().sum(dim=0) # STEP 7
-        return s
+            if r!=self.routing_iterations:
+                b = b + (s * x).sum(dim=-1, keepdim=True)                                               # STEP 7
+        return s.squeeze()
 
 class MarginLoss(nn.Module):
     def __init__(self,m_plus=0.9,m_minus=0.1,downweighting=0.5):
@@ -97,15 +97,15 @@ class MarginLoss(nn.Module):
         for i,lab in enumerate(target.data): ## POSSIBLE BOTTLENECK
             one_hot[i,lab] = 1
 
-        l2norm = output.norm(dim=-1, keepdim=True)
+        l2norm = output.norm(dim=-1)
         term1 = F.relu(self.m_plus-l2norm)**2
         term1 = term1.squeeze()
         term2 = self.downweighting * F.relu(l2norm-self.m_minus)**2
         term2 = term2.squeeze()
         loss_vec = torch.mul(term1,one_hot) + torch.mul(term2,1-one_hot)
-
+        print('Margin=', loss_vec)
         total_loss = loss_vec.sum(dim=-1)
-        return total_loss
+        return total_loss.mean()
 
 class ReconLoss(nn.Module):
     def __init__(self):
@@ -116,7 +116,8 @@ class ReconLoss(nn.Module):
         original = original.view(-1,28*28)
         loss_vec = (original.data-recon.data).norm(p=2,dim=-1)**2
         loss_vec = Variable(loss_vec)
-        return loss_vec
+        print('Recon=',loss_vec)
+        return loss_vec.mean()
 
 class CapsuleLoss(nn.Module):
     def __init__(self):
@@ -130,7 +131,6 @@ class CapsuleLoss(nn.Module):
         loss = loss_m.data+ 0.0005*loss_r.data
         loss = Variable(loss)
         loss.requires_grad = True
-        loss = loss.mean()
         return loss
 
 class Capsule_Net(nn.Module):
@@ -147,16 +147,17 @@ class Capsule_Net(nn.Module):
             nn.Linear(1024,784),
             nn.Sigmoid()
         )
+        self.mask = Variable(torch.eye(10))
+        if use_cuda:
+            self.mask = self.mask.cuda()
 
     def forward(self,x,label=None):
-        original = x
         x = self.conv1(x)
         x = self.primary_caps(x)
         x = self.digcaps(x)
-        one_hot = Variable(torch.zeros(x.shape[0], x.shape[1]))  # B x 10
-        if use_cuda:
-            one_hot = one_hot.cuda()
-
+        print('Output = ',x.norm(dim=-1))
+        class_probs = F.softmax(torch.sqrt((x ** 2).sum(dim=-1)), dim=-1)
+        print('Probs = ',class_probs)
         if label is None:
             logits = x.norm(dim=-1)
             _, label = torch.max(logits.data, dim=1)
@@ -164,9 +165,8 @@ class Capsule_Net(nn.Module):
             if use_cuda:
                 label=label.cuda()
 
-        for i, lab in enumerate(label.data):
-            one_hot[i, lab] = 1
-
+        one_hot = self.mask.index_select(dim=0,index = label)
+        print(one_hot)
         recon = one_hot.unsqueeze(-1) * x # B x 10 x 16
         recon = recon.view(-1,x.shape[1]*x.shape[2])
         recon = self.decoder(recon) # B x 784
