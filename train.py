@@ -71,8 +71,7 @@ for epoch in range(10):
             pred_label = pred_label.cuda()
         correct_cnt = (pred_label == target.data.cuda()).sum()
         train_acc = correct_cnt/batch_size
-        sys.stdout.write('Epoch = {}\t Batch n.o.={}\t Loss={0:.4f}\t Train_acc={0:.4f}\r'
-                             .format(epoch,batch_no,loss.data[0],train_acc))
+        sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\r'.format(epoch,batch_no,loss.data[0],train_acc))
         sys.stdout.flush()
         avg_loss+=loss
 
