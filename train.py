@@ -83,7 +83,6 @@ for epoch in range(10):
         loss_r = loss_recon(x,recon)
         loss = loss_m.data+ 0.0005*loss_r.data
         loss = Variable(loss)
-        loss = loss.mean()
         loss.requires_grad=True
         loss.backward()
         optimizer.step()
