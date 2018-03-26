@@ -1,10 +1,8 @@
 from torch.autograd import Variable
-import torch.nn as nn
-import torch.nn.functional as F
 import torch
 import torch.optim as optim
-import sys, argparse
-from capsule import Capsule_Net, MarginLoss, ReconLoss
+import sys
+from capsule import Capsule_Net, CapsuleLoss
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 
@@ -15,23 +13,6 @@ def load_model(model,path):
     model.load_state_dict(torch.load(path), strict=False)
     print('######## MODEL LOADED ########')
     return model
-
-def print_blobs(self, input, output):
-    # input is a tuple of packed inputs
-    # output is a Variable. output.data is the Tensor we are interested
-    print('\nInside ' + self.__class__.__name__ + ' forward')
-    print('')
-    print('input: ', type(input))
-    print('input[0]: ', type(input[0]))
-    print('output: ', type(output))
-    print('')
-    print('input size:', input[0].size())
-    print('output size:', output.data.size())
-
-def add_fwd_hook(net):
-    net.conv1.register_backward_hook(print_blobs)
-    net.primary_caps.register_backward_hook(print_blobs)
-    net.digcaps.register_backward_hook(print_blobs)
 
 ########################################################################################
 ###################### LOADER CODE BELOW TAKEN FROM TUTORIAL############################
@@ -66,40 +47,36 @@ if use_cuda:
     model = model.cuda()
 
 optimizer = optim.Adam(model.parameters())
-loss_margin = MarginLoss()
-loss_recon = ReconLoss()
+loss_fn = CapsuleLoss()
 best_acc = 0.0
-avg_loss = 0.0
 for epoch in range(10):
     # training
-    ave_loss = 0.0
+    avg_loss = 0.0
     train_acc=0.0
-    for batch_idx, (x, target) in enumerate(train_loader):
+    for batch_no, (x, target) in enumerate(train_loader):
+
         optimizer.zero_grad()
         if use_cuda:
             x, target = x.cuda(), target.cuda()
         x, target = Variable(x), Variable(target)
         out,recon = model(x, target)
-        loss_m = loss_margin(out, target)
-        loss_r = loss_recon(x,recon)
-        loss = loss_m.data+ 0.0005*loss_r.data
-        loss = Variable(loss)
-        loss.requires_grad=True
+        loss = loss_fn(out,target,x,recon)
         loss.backward()
         optimizer.step()
+
+        # OBTAIN ACCURACY ON BATCH
         logits = out.norm(dim=-1)
-        _, pred_label = torch.max(logits.data, dim=1)  # cool trick
+        _, pred_label = torch.max(logits.data, dim=1)
         if use_cuda:
             pred_label = pred_label.cuda()
         correct_cnt = (pred_label == target.data.cuda()).sum()
         train_acc = correct_cnt/batch_size
-        if batch_idx%100==0:
-            sys.stdout.write('Epoch = {}\t Batch n.o.={}\t Loss={}\t Loss_m={}\tLoss_r={}\t Train_acc={}\n'
-                             .format(epoch,batch_idx,loss.data[0],loss_m.data[0],loss_r.data[0],train_acc))
+        sys.stdout.write('Epoch = {}\t Batch n.o.={}\t Loss={0:.4f}\t Train_acc={0:.4f}\r'
+                             .format(epoch,batch_no,loss.data[0],train_acc))
         sys.stdout.flush()
         avg_loss+=loss
 
-    sys.stdout.write('\nAvg Loss={}'.format(avg_loss.data[0]/len(train_loader)))
+    sys.stdout.write('\nAvg Loss={0:.4f}'.format(avg_loss.data[0]/len(train_loader)))
     # testing
     correct_cnt=0
     total_cnt = 0
