@@ -41,11 +41,11 @@ use_cuda = torch.cuda.is_available()
 root = './data'
 download = True  # download MNIST dataset or not
 
-trans = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+trans = transforms.Compose([transforms.ToTensor()])#, transforms.Normalize((0.5,), (1.0,))])
 train_set = dset.MNIST(root=root, train=True, transform=trans, download=download)
 test_set = dset.MNIST(root=root, train=False, transform=trans)
 
-batch_size = 256
+batch_size = 100
 
 train_loader = torch.utils.data.DataLoader(
                  dataset=train_set,
@@ -60,19 +60,18 @@ print('==>>> total training batch number: {}'.format(len(train_loader)))
 print('==>>> total testing batch number: {}\n'.format(len(test_loader)))
 
 model = Capsule_Net()
-#print(model)
+print(model)
 if use_cuda:
     model = model.cuda()
 
-optimizer = optim.Adam(model.parameters(),lr=0.01)
+optimizer = optim.Adam(model.parameters())
 loss_margin = MarginLoss()
 loss_recon = ReconLoss()
 best_acc = 0.0
 avg_loss = 0.0
 for epoch in range(10):
-    total_size = 0
     # training
-    ave_loss = 0
+    ave_loss = 0.0
     for batch_idx, (x, target) in enumerate(train_loader):
         optimizer.zero_grad()
         if use_cuda:
@@ -86,11 +85,11 @@ for epoch in range(10):
         loss.requires_grad=True
         loss.backward()
         optimizer.step()
-        sys.stdout.write('Epoch = {}\t Loss={}\t Loss_m={}\r'.format(epoch,loss.data[0],loss_m.data.mean()))
+        if batch_idx%100==0:
+            sys.stdout.write('Epoch = {}\t Loss={}\t Loss_m={}\tLoss_r={}\n'.format(epoch,loss.data[0],loss_m.data[0],loss_r.data[0]))
         sys.stdout.flush()
         avg_loss+=loss
-        total_size+=x.shape[0]
-    sys.stdout.write('\nAvg Loss={}'.format(avg_loss.data[0]/total_size*batch_size))
+    sys.stdout.write('\nAvg Loss={}'.format(avg_loss.data[0]/len(train_loader)))
     # testing
     correct_cnt=0
     total_cnt = 0

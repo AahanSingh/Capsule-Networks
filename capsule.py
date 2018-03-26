@@ -104,15 +104,14 @@ class MarginLoss(nn.Module):
 
     def forward(self,output,target):
         # output = B X 10 X 16, TARGET = B X CLASS NUMBER
+        loss_vec = Variable(torch.zeros(output.shape[0], output.shape[1]))
+        one_hot = Variable(torch.zeros_like(loss_vec.data))
         if use_cuda:
-            loss_vec = Variable(torch.zeros(output.shape[0],output.shape[1]).cuda()) # B x 10
-            one_hot = Variable(torch.zeros_like(loss_vec.data).cuda()) # B x 10
-        else:
-            loss_vec = Variable(torch.zeros(output.shape[0], output.shape[1]))
-            one_hot = Variable(torch.zeros_like(loss_vec.data))
-        for i,lab in enumerate(target.data):
+            loss_vec = loss_vec.cuda()
+            one_hot = one_hot.cuda()
+
+        for i,lab in enumerate(target.data): ## POSSIBLE BOTTLENECK
             one_hot[i,lab] = 1
-        one_hot_inv = (one_hot-1) * -1
 
         l2norm = output.norm(dim=-1, keepdim=True)  # Bx10
         term1 = F.relu(self.m_plus-l2norm)**2  # Bx10
@@ -120,14 +119,10 @@ class MarginLoss(nn.Module):
         term2 = self.downweighting * F.relu(l2norm-self.m_minus)**2  # Bx10
         term2 = term2.squeeze()
 
-        loss_vec = torch.mul(term1,one_hot) + torch.mul(term2,one_hot_inv)
+        loss_vec = torch.mul(term1,one_hot) + torch.mul(term2,1-one_hot)
         # loss_vec contains capsule wise loss
-        total_loss = loss_vec.sum()
+        total_loss = loss_vec.mean()
         return total_loss
-        #total_loss = total_loss.mean()
-        #total_loss.requires_grad=True
-        #return total_loss
-
 
 class ReconLoss(nn.Module):
     def __init__(self):
@@ -138,10 +133,7 @@ class ReconLoss(nn.Module):
         original = original.view(-1,28*28)
         loss_vec = (original.data-recon.data).norm(p=2,dim=-1)
         loss_vec = Variable(loss_vec)
-        return loss_vec.sum()
-        #loss = loss_vec.mean()
-        #loss.required_grad=True
-        #return loss
+        return loss_vec.mean()
 
 class Capsule_Net(nn.Module):
     def __init__(self):
