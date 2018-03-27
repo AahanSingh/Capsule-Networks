@@ -59,7 +59,7 @@ trans = transforms.Compose([transforms.ToTensor()])#, transforms.Normalize((0.5,
 train_set = dset.MNIST(root=root, train=True, transform=trans, download=download)
 test_set = dset.MNIST(root=root, train=False, transform=trans)
 
-batch_size = 5
+batch_size = 100
 
 train_loader = torch.utils.data.DataLoader(
                  dataset=train_set,
@@ -110,7 +110,7 @@ for epoch in range(10):
         _, pred_label = torch.max(logits.data, dim=1)
         if use_cuda:
             pred_label = pred_label.cuda()
-        train_acc = (pred_label == target.data).double().mean()
+        train_acc = (pred_label == target.data).double().sum()
         #if batch_no%batch_size==0:
         sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\r'.format(epoch,batch_no,loss.data[0],train_acc))
         sys.stdout.flush()

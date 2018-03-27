@@ -73,20 +73,20 @@ def MarginLoss(output,one_hot):
     m_plus = 0.9
     m_minus = 0.1
     l2norm = output.norm(dim=-1)
-    l2norm = F.softmax(l2norm,dim=-1)
+    #l2norm = F.softmax(l2norm,dim=-1)
     term1 = F.relu(m_plus-l2norm)**2
-    #term1 = term1.squeeze()
     term2 = F.relu(l2norm-m_minus)**2
-    #term2 = term2.squeeze()
     loss_vec = one_hot * term1 + downweighting*((1-one_hot)*term2)
     total_loss = loss_vec.sum(dim=-1)
+    #print('Margin_loss=',total_loss[:5])
     return total_loss.mean()
 
 def ReconLoss(original,recon):
     # original = B X 1 X 28 X 28, recon = B X 784
     original = original.view(-1,28*28)
-    loss_vec = (original.data-recon.data)**2
+    loss_vec = (recon-original)**2
     loss_vec = loss_vec.sum(-1)
+    #print('Recon Loss=',loss_vec[:5])
     return loss_vec.mean()
 
 def CapsuleLoss(out,label,original,recon):
