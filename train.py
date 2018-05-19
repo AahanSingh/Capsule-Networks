@@ -119,8 +119,7 @@ for epoch in range(10):
     total_cnt = 0
     for batch_idx, (x, target) in enumerate(test_loader):
         x, target = x.to(device), target.to(device)
-        x.no_grad()
-        target.no_grad()
+        
         out,recon,_ = model(x)
         logits = out.norm(dim=-1)
         _, pred_label = torch.max(logits.data, dim=1) # cool trick
