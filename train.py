@@ -126,10 +126,8 @@ for epoch in range(10):
         pred_label=pred_label.to(device)
         total_cnt += x.data.size()[0]
         correct_cnt += (pred_label == target).sum()
-        print('total_cnt=',total_cnt)
-        print('correct_cnt=', correct_cnt)
-    test_acc = correct_cnt/total_cnt
-    print('\nTest Accuracy={}'.format(correct_cnt * 1.0 / total_cnt))
+    test_acc = correct_cnt.item()*1.0/total_cnt
+    print('\nTest Accuracy={}'.format(test_acc))
     if test_acc>best_acc:
         best_acc=test_acc
         save_model(model,'model_acc_{}.pkl'.format(best_acc))
