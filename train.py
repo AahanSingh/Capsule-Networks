@@ -99,11 +99,12 @@ for epoch in range(10):
         optimizer.zero_grad()
         # COMPUTE OUTPUT
         out,recon,mask = model(x, target)
-        out.requires_grad_()
-        recon.requires_grad_()
-        mask.requires_grad_()
         # COMPUTE LOSS
         loss = CapsuleLoss(out,mask,x,recon)
+        print('out need grad?', out.requires_grad)
+        print('recon need grad?', recon.requires_grad)
+        print('mask need grad?', mask.requires_grad)
+        print('loss need grad?',loss.requires_grad)
         # FIND GRADIENTS
         loss.backward()
         # UPDATE WEIGHTS
