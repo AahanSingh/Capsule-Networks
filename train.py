@@ -92,8 +92,8 @@ for epoch in range(10):
     for batch_no, (x, target) in enumerate(train_loader):
 
         x, target = x.to(device), target.to(device)
-        x.requires_grad_()
-        target.requires_grad_()
+        #x.requires_grad_()
+        #target.requires_grad_()
 
         # CLEAR GRADIENT TO PREVENT ACCUMULATION
         optimizer.zero_grad()
