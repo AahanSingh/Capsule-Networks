@@ -125,7 +125,9 @@ for epoch in range(10):
         _, pred_label = torch.max(logits.data, dim=1) # cool trick
         pred_label=pred_label.to(device)
         total_cnt += x.data.size()[0]
-        correct_cnt += (pred_label == target.data.cuda()).sum()
+        correct_cnt += (pred_label == target).sum()
+        print('total_cnt=',total_cnt)
+        print('correct_cnt=', correct_cnt)
     test_acc = correct_cnt/total_cnt
     print('\nTest Accuracy={}'.format(correct_cnt * 1.0 / total_cnt))
     if test_acc>best_acc:
