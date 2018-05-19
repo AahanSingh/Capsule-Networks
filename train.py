@@ -1,4 +1,3 @@
-from torch.autograd import Variable
 import torch
 import torch.optim as optim
 import sys, time
@@ -6,6 +5,9 @@ from capsule import Capsule_Net, CapsuleLoss
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torch.nn.functional as F
+
+
+
 
 def save_model(model,path):
     torch.save(model.state_dict(),path)
@@ -50,7 +52,7 @@ def print_blobs(self, input, output):
 ########################################################################################
 ###################### LOADER CODE BELOW TAKEN FROM TUTORIAL############################
 ########################################################################################
-use_cuda = torch.cuda.is_available()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 root = './data'
 download = True  # download MNIST dataset or not
@@ -73,14 +75,11 @@ test_loader = torch.utils.data.DataLoader(
 print('==>>> total training batch number: {}'.format(len(train_loader)))
 print('==>>> total testing batch number: {}\n'.format(len(test_loader)))
 
-model = Capsule_Net()
+model = Capsule_Net().to(device)
 print(model)
 #model.conv1.register_backward_hook(printgradnorm)
 #model.digcaps.register_forward_hook(print_blobs)
 print ("# parameters: ", sum(param.numel() for param in model.parameters()))
-
-if use_cuda:
-    model = model.cuda()
 
 optimizer = optim.Adam(model.parameters())
 best_acc = 0.0
@@ -91,9 +90,9 @@ for epoch in range(10):
     start_time = time.time()
     for batch_no, (x, target) in enumerate(train_loader):
 
-        if use_cuda:
-            x, target = x.cuda(), target.cuda()
-        x, target = Variable(x), Variable(target)
+        x, target = x.to(device), target.to(device)
+        x.requires_grad_()
+        target.requires_grad_()
 
         # CLEAR GRADIENT TO PREVENT ACCUMULATION
         optimizer.zero_grad()
@@ -108,8 +107,7 @@ for epoch in range(10):
         # OBTAIN ACCURACY ON BATCH
         logits = F.softmax(out.norm(dim=-1),dim=-1)
         _, pred_label = torch.max(logits.data, dim=1)
-        if use_cuda:
-            pred_label = pred_label.cuda()
+        pred_label = pred_label.to(device)
         train_acc = (pred_label == target.data).double().sum()
         #if batch_no%batch_size==0:
         sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\r'.format(epoch,batch_no,loss.data[0],train_acc))
@@ -121,14 +119,13 @@ for epoch in range(10):
     correct_cnt=0
     total_cnt = 0
     for batch_idx, (x, target) in enumerate(test_loader):
-        if use_cuda:
-            x, targe = x.cuda(), target.cuda()
-        x, target = Variable(x, volatile=True), Variable(target, volatile=True)
+        x, target = x.to(device), target.to(device)
+        x.no_grad()
+        target.no_grad()
         out,recon,_ = model(x)
         logits = out.norm(dim=-1)
         _, pred_label = torch.max(logits.data, dim=1) # cool trick
-        if use_cuda:
-            pred_label=pred_label.cuda()
+        pred_label=pred_label.to(device)
         total_cnt += x.data.size()[0]
         correct_cnt += (pred_label == target.data.cuda()).sum()
     test_acc = correct_cnt/total_cnt

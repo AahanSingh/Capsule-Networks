@@ -1,9 +1,8 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
-from torch.autograd import Variable
 
-use_cuda = torch.cuda.is_available()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def Squash(x):
     l2norm = x.norm(dim=-1,keepdim=True)
@@ -53,9 +52,9 @@ class Capsule_fc(nn.Module):
         x = torch.matmul(self.W,x.unsqueeze(-1).unsqueeze(-3)).squeeze()
         # shape of x is now B X NUM_IN_CAPS X NUM_OUT_CAPS  X 16
         # x is now U j|i or the PREDICTION VECTORS
-        coupling_coef = Variable(torch.zeros([*x.shape]))
-        if use_cuda:
-            coupling_coef = coupling_coef.cuda()
+        coupling_coef = torch.zeros([*x.shape])
+        coupling_coef.requires_grad_()
+        coupling_coef = coupling_coef.to(device)
         b = coupling_coef
         for r in range(1,self.routing_iterations+1):                                                    # STEP 3
             coupling_coef = F.softmax(b,dim=1)                                                         # STEP 4
@@ -65,7 +64,6 @@ class Capsule_fc(nn.Module):
             if r!=self.routing_iterations:
                 b = b + (v * x).sum(dim=-1, keepdim=True)                                               # STEP 7
         return v.squeeze()
-
 
 def MarginLoss(output,one_hot):
     # output = B X 10 X 16, TARGET = B X CLASS NUMBER
@@ -109,9 +107,9 @@ class Capsule_Net(nn.Module):
             nn.Linear(1024,784),
             nn.Sigmoid()
         )
-        self.mask = Variable(torch.eye(10))
-        if use_cuda:
-            self.mask = self.mask.cuda()
+        self.mask = torch.eye(10)
+        self.mask.requires_grad_()
+        self.mask = self.mask.to(device)
 
     def forward(self,x,label=None):
         x = self.conv1(x)
@@ -120,9 +118,8 @@ class Capsule_Net(nn.Module):
         if label is None:
             logits = x.norm(dim=-1)
             _, label = torch.max(logits.data, dim=1)
-            label = Variable(label)
-            if use_cuda:
-                label=label.cuda()
+            label.requires_grad_()
+            label = label.to(device)
 
         one_hot = self.mask.index_select(dim=0,index = label)
         recon = one_hot.unsqueeze(-1) * x # B x 10 x 16
