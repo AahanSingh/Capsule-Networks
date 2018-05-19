@@ -53,6 +53,7 @@ def print_blobs(self, input, output):
 ###################### LOADER CODE BELOW TAKEN FROM TUTORIAL############################
 ########################################################################################
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print('Using device:\t',device)
 
 root = './data'
 download = True  # download MNIST dataset or not
