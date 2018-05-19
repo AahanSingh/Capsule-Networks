@@ -62,7 +62,7 @@ trans = transforms.Compose([transforms.ToTensor()])#, transforms.Normalize((0.5,
 train_set = dset.MNIST(root=root, train=True, transform=trans, download=download)
 test_set = dset.MNIST(root=root, train=False, transform=trans)
 
-batch_size = 100
+batch_size = 256
 
 train_loader = torch.utils.data.DataLoader(
                  dataset=train_set,
@@ -92,8 +92,6 @@ for epoch in range(10):
     for batch_no, (x, target) in enumerate(train_loader):
 
         x, target = x.to(device), target.to(device)
-        #x.requires_grad_()
-        #target.requires_grad_()
 
         # CLEAR GRADIENT TO PREVENT ACCUMULATION
         optimizer.zero_grad()
