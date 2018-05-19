@@ -109,11 +109,11 @@ for epoch in range(10):
         pred_label = pred_label.to(device)
         train_acc = (pred_label == target.data).double().sum()
         #if batch_no%batch_size==0:
-        sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\r'.format(epoch,batch_no,loss.data[0],train_acc))
+        sys.stdout.write('Epoch = {0}\t Batch n.o.={1}\t Loss={2:.4f}\t Train_acc={3:.4f}\r'.format(epoch,batch_no,loss.item(),train_acc))
         sys.stdout.flush()
-        avg_loss+=loss
+        avg_loss+=loss.item()
     total_time = time.time()-start_time
-    sys.stdout.write('\nAvg Loss={0:.4f}\t time taken = {1:0.2f}'.format(avg_loss.data[0]/len(train_loader),total_time))
+    sys.stdout.write('\nAvg Loss={0:.4f}\t time taken = {1:0.2f}'.format(avg_loss/len(train_loader),total_time))
     # testing
     correct_cnt=0
     total_cnt = 0
