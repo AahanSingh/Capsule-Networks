@@ -52,17 +52,17 @@ class Capsule_fc(nn.Module):
         x = torch.matmul(self.W,x.unsqueeze(-1).unsqueeze(-3)).squeeze()
         # shape of x is now B X NUM_IN_CAPS X NUM_OUT_CAPS  X 16
         # x is now U j|i or the PREDICTION VECTORS
-        coupling_coef = torch.zeros([*x.shape])
+        coupling_coef = torch.zeros([*x.shape[:-1]]).unsqueeze(-1)
         coupling_coef.requires_grad_()
         coupling_coef = coupling_coef.to(device)
         b = coupling_coef
-        for r in range(1,self.routing_iterations+1):                                                    # STEP 3
+        for r in range(1,self.routing_iterations+1):                                                   # STEP 3
             coupling_coef = F.softmax(b,dim=1)                                                         # STEP 4
-            s = coupling_coef * x                                                                       # STEP 5
+            s = coupling_coef * x                                                                      # STEP 5
             s = s.sum(dim=1,keepdim=True)                                                              # STEP 5
-            v = Squash(s)                                                                          # STEP 6
+            v = Squash(s)                                                                              # STEP 6
             if r!=self.routing_iterations:
-                b = b + (v * x).sum(dim=-1, keepdim=True)                                               # STEP 7
+                b = b + (v * x).sum(dim=-1, keepdim=True)                                              # STEP 7
         return v.squeeze()
 
 def MarginLoss(output,one_hot):
