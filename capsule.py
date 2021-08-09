@@ -118,7 +118,7 @@ class Capsule_Net(nn.Module):
         if label is None:
             logits = x.norm(dim=-1)
             _, label = torch.max(logits.data, dim=1)
-            label.requires_grad_()
+            #label.requires_grad_()
             label = label.to(device)
 
         one_hot = self.mask.index_select(dim=0,index = label)
