@@ -26,6 +26,13 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
+optimizers = {
+    "adam": optim.Adam,
+    "sgd": optim.SGD,
+    "adadelta": optim.Adadelta,
+    "rmsprop": optim.RMSprop,
+}
+
 
 def train_step(model, train_loader, device, optimizer, epoch, batch_size):
     # model.train()
@@ -100,6 +107,11 @@ def main():
     ###################### LOADER CODE BELOW TAKEN FROM TUTORIAL############################
     ########################################################################################
 
+    if args.optimizer not in optimizers:
+        raise Exception(
+            "Invalid optimizer given. Available optimizers: {}".format(list(optimizers.keys()))
+        )
+
     if args.gpu:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     else:
@@ -129,7 +141,7 @@ def main():
     # model.digcaps.register_forward_hook(print_blobs)
     logging.info("# parameters: {}".format(sum(param.numel() for param in model.parameters())))
 
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optimizers[args.optimizer](model.parameters(), lr=args.lr)
     best_acc = 0.0
     training_parameters = {
         "Batch Size": args.batch_size,
@@ -155,9 +167,7 @@ def main():
             if test_acc > best_acc:
                 best_acc = test_acc
                 best_epoch = epoch
-                mlflow.pytorch.log_model(
-                    model, artifact_path="{}-{}".format(best_epoch, best_acc)
-                )
+                mlflow.pytorch.log_model(model, artifact_path="{}-{}".format(best_epoch, best_acc))
 
 
 if __name__ == "__main__":
