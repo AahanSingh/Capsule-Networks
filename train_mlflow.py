@@ -131,7 +131,6 @@ def main():
 
     optimizer = optim.Adam(model.parameters())
     best_acc = 0.0
-    best_model = None
     training_parameters = {
         "Batch Size": args.batch_size,
         "Epochs": args.epochs,
